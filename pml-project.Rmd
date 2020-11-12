@@ -1,0 +1,130 @@
+---
+title: "pml project"
+author: "ju-ok"
+date: "11/12/2020"
+output: 
+    html_document:
+        keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.
+Details:  http://groupware.les.inf.puc-rio.br/har
+
+## Data
+The training data for this project can be accessed from:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv \
+The test data are also available at:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+# Exploratory Data analysis
+```{r eda}
+# Load packages 
+library(caret)
+
+# Load the data sets 
+training <- read.csv("./pml-training.csv")
+testing <- read.csv("./pml-testing.csv")
+
+# Explore data sets
+# structure
+str(training)
+
+# dimensions
+dim(training)
+```
+
+# Clean the data
+```{r clean}
+# Clean the data sets 
+
+# remove columns with undesired info
+training <- training[, -c(1:7)]
+testing <- testing[, -c(1:7)]
+
+# remove columns with NA        
+training <- training[, colSums(is.na(training)) == 0]
+testing <- testing[, colSums(is.na(testing)) == 0]
+
+# remove all character columns except classe
+training <- training[, sapply(training[ , -86], is.numeric)]
+testing <- testing[, sapply(testing[ , -86], is.numeric)]
+
+# dimensions of the training and test data
+dim(training); dim(testing)
+```
+
+# Split the training data
+The training data is split into 70% training set and 30% testing set.
+```{r split}
+# Split training data into trainingset and testingset
+set.seed(1222)
+
+inTrain <- createDataPartition(y = training$classe, 
+                               p = 0.7,
+                               list = FALSE)
+
+trainingset <- training[inTrain, ]
+testingset <- training[-inTrain, ]
+```
+
+# Fit models
+## classification tree
+```{r tree1}
+# classification tree
+modrpart <- train(classe ~., method = "rpart",  data = trainingset)
+
+# plot the final model
+plot(modrpart$finalModel, main = "Classification tree")
+text(modrpart$finalModel, use.n = TRUE, all = TRUE, cex = 0.8)
+```
+
+```{r tree2}
+# predict using testingset
+predrpart <- predict(modrpart, testingset)
+
+# evaluate the model
+confusionMatrix(predrpart, as.factor(testingset$classe))
+```
+
+## Generalized boosted model
+```{r gbm}
+# gbm
+control <- trainControl(method = "repeatedcv", number = 3, repeats = 1)
+modgbm <- train(classe ~., method = "gbm",  data = trainingset, 
+                trControl = control, verbose = FALSE)
+```
+
+```{r gbm2}
+# predict using testingset
+predgbm <- predict(modgbm, testingset)
+
+# evaluate
+confusionMatrix(predgbm, as.factor(testingset$classe))
+```
+
+## random forest
+```{r rf}
+# rf
+modrf <- train(classe ~., method = "rf", data = trainingset,
+               trControl = trainControl(method = "cv"), number = 3)
+```
+
+```{r rf2}
+# predict using testingset
+predrf <- predict(modrf, testingset)
+
+# evaluate
+confusionMatrix(predrf, as.factor(testingset$classe))
+```
+
+# Select and use best model
+Based on the accuracy scores from the confusionMatrix, the random forest model has the highest accuracy followed by the generalized boosted model and classification tree respectively. The random forest model will be used on the `testing` data.
+```{r final}
+predfinal <- predict(modrf, testing)
+predfinal
+```
