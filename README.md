@@ -8,6 +8,5 @@ Predict the manner in which the exercise was performed
 
 ## Data
 The training data for this project can be accessed from:
-https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
-The test data are also available at:
-https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv \
+The test data are also available at: https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
